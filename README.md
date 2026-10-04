@@ -31,6 +31,15 @@ An object a framework returned is read with `CoreFoundationValue(unchecked:)`. O
 handed over is read with `CoreFoundationValue(_:)`, which returns `nil` for a proxy instead of
 letting `CFGetTypeID` send it a message it would raise on.
 
+A type that is not among the cases is told apart by its type ID, and
+`CoreFoundationValue.typeID(of:)` answers with it under the same guard:
+
+```swift
+guard CoreFoundationValue.typeID(of: object) == SecKeyGetTypeID() else {
+    return nil
+}
+```
+
 ## Requirements
 
 * Swift 6.2 (Xcode 26) or later

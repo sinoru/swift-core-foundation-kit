@@ -132,6 +132,17 @@ struct CoreFoundationValueTests {
         #expect(CoreFoundationValue(NotAnNSObject())?.kind == .other)
     }
 
+    // The types that are not among the cases are told apart by comparing the type ID itself.
+    @Test
+    func answersWithTheTypeIDOfAnObjectOfUnknownOrigin() {
+        #expect(CoreFoundationValue.typeID(of: NSString(string: "text")) == CFStringGetTypeID())
+        #expect(CoreFoundationValue.typeID(of: "text" as AnyObject) == CFStringGetTypeID())
+        #expect(CoreFoundationValue.typeID(of: kCFBooleanTrue) == CFBooleanGetTypeID())
+        #expect(CoreFoundationValue.typeID(of: NSNull()) == CFNullGetTypeID())
+        #expect(CoreFoundationValue.typeID(of: NSObject()) != nil)
+        #expect(CoreFoundationValue.typeID(of: NotAnNSObject()) != nil)
+    }
+
 #if os(macOS)
     // A proxy answers what it is asked by forwarding it, and one that will not forward a message
     // raises instead. `CFGetTypeID` asks an object that is not CoreFoundation's own, so a proxy
@@ -146,6 +157,7 @@ struct CoreFoundationValueTests {
         let proxy = NSProtocolChecker(target: NSObject(), protocol: (any NSObjectProtocol).self)
 
         #expect(CoreFoundationValue(proxy) == nil)
+        #expect(CoreFoundationValue.typeID(of: proxy) == nil)
     }
 #endif
 }

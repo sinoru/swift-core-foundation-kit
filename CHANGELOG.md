@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CoreFoundationValue.typeID(of:)`, which answers with the CoreFoundation type ID of an object
+  of unknown origin, or `nil` for a proxy. It is the question to ask before comparing against
+  the type ID of a type that is not among the cases, such as `SecKeyGetTypeID()`.
+
 ## [0.0.1] - 2026-10-05
 
 ### Added

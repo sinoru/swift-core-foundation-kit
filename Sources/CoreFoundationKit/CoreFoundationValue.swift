@@ -56,7 +56,29 @@ extension CoreFoundationValue {
     ///   proxy — see ``init(_:)`` for one whose origin is not known.
     @inlinable
     public init(unchecked object: CFTypeRef) {
-        switch CFGetTypeID(object) {
+        self.init(object, typeID: CFGetTypeID(object))
+    }
+
+    /// Creates a value from an object of unknown origin, if the object can be asked for its
+    /// type ID.
+    ///
+    /// A proxy cannot be, and reads as `nil`; ``typeID(of:)`` is where that is settled, and why.
+    ///
+    /// An object a framework returned needs none of this; ``init(unchecked:)`` reads it directly.
+    ///
+    /// - Parameter object: Any object at all.
+    @inlinable
+    public init?(_ object: AnyObject) {
+        guard let typeID = Self.typeID(of: object) else { return nil }
+
+        self.init(object, typeID: typeID)
+    }
+
+    /// Creates a value from an object and the type ID it has already answered with, so that
+    /// neither initializer asks for it twice.
+    @inlinable
+    init(_ object: CFTypeRef, typeID: CFTypeID) {
+        switch typeID {
         case CFStringGetTypeID():
             self = .string(unsafe unsafeDowncast(object, to: CFString.self))
         case CFBooleanGetTypeID():
@@ -75,9 +97,14 @@ extension CoreFoundationValue {
             self = .other(object)
         }
     }
+}
 
-    /// Creates a value from an object of unknown origin, if the object can be asked for its
-    /// type ID.
+extension CoreFoundationValue {
+    /// Returns the CoreFoundation type ID of an object of unknown origin, or `nil` if the object
+    /// cannot be asked for one.
+    ///
+    /// For the types that are not among the cases — a `SecKey`, an `IOSurface` — this is the
+    /// question to ask before comparing against that type's own `GetTypeID` function.
     ///
     /// `CFGetTypeID` answers for a CoreFoundation object itself and sends every other one
     /// `_cfTypeID`, which `NSObject` and Swift's own root class implement and `NSProxy` does not:
@@ -87,11 +114,11 @@ extension CoreFoundationValue {
     /// for the class without a message being sent, and the question is the one `CFGetTypeID` is
     /// about to depend on.
     ///
-    /// An object a framework returned needs none of this; ``init(unchecked:)`` reads it directly.
+    /// An object a framework returned needs none of this; `CFGetTypeID` reads it directly.
     ///
     /// - Parameter object: Any object at all.
     @inlinable
-    public init?(_ object: AnyObject) {
+    public static func typeID(of object: AnyObject) -> CFTypeID? {
         guard
             class_respondsToSelector(
                 object_getClass(object),
@@ -101,7 +128,7 @@ extension CoreFoundationValue {
             return nil
         }
 
-        self.init(unchecked: object)
+        return CFGetTypeID(object)
     }
 }
 
