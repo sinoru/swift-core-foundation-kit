@@ -31,4 +31,6 @@ let benchmarks: @Sendable () -> Void = {
     )
 
     registerClassificationBenchmarks()
+    registerNumberBenchmarks()
+    registerCollectionBenchmarks()
 }

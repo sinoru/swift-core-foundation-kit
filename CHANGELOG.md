@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CoreFoundationValue.Number`, the value of a `CFNumber` as the Swift type that holds it
+  exactly: an `Int64`, a `UInt64` for an integer above `Int64.max`, or a `Double` for a number
+  of a floating-point type, whole or not. `Number(exactly:)` asks the questions in the order
+  that gets this right, and bridges the number only when it read as negative and says it
+  holds neither a signed integer nor an unsigned one. Next to the casts that check exactness,
+  an integer that is not negative is read in less than half the work, one too large for a
+  tagged pointer in an eighth of it, and one above `Int64.max` in under a fifth.
+- `CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements`, the
+  contents of a `CFArray` and a `CFDictionary` as collections of objects not yet told apart.
+  Neither builds a Swift array or dictionary, a loop over either ends where the reader ends
+  it, and a key that is not a string is handed over for the reader to judge. For
+  collections CoreFoundation owns, walking a dictionary of 16 entries takes under a fifth of
+  the work of `enumerateKeysAndObjects(_:)`, and an array of 16 elements under a sixth of the
+  work of fast enumeration; for ones bridged from Swift, under a third and under a half.
+
+### Changed
+
+- The package no longer leaves what a number becomes and how a collection is walked to the
+  reader. It tells an object apart and reads the ones that take more than a cast to read.
+- The module now imports Foundation publicly.
+
 ## [0.0.2] - 2026-10-05
 
 ### Added

@@ -16,10 +16,11 @@ public import ObjectiveC
 /// since every number is an `NSNumber`, booleans included, and `NSNumber(value: 1) as? Bool`
 /// succeeds. The type ID is the one question that tells them apart, and this is where it is asked.
 ///
-/// That is all this does. What a number becomes, how a collection is walked, and whether an object
-/// of some other type is an error or something to carry along are each reader's own to decide, and
-/// each payload is the CoreFoundation type so that nothing has been decided for it: bridge with
-/// `as` to the Foundation or Swift type from there.
+/// Each payload is the CoreFoundation type, so that telling an object apart costs nothing a reader
+/// did not ask for: bridge with `as` to the Foundation or Swift type from there. The three that
+/// take more than a cast to read are read here too — the value of a number by ``Number``, and the
+/// contents of a collection by ``ArrayElements`` and ``DictionaryElements``. Whether an object of
+/// some other type is an error or something to carry along is the reader's own to decide.
 public enum CoreFoundationValue {
     /// A `CFString`.
     case string(CFString)

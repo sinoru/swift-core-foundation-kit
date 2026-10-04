@@ -1,6 +1,6 @@
 # CoreFoundationKit
 
-**CoreFoundationKit** tells CoreFoundation objects apart. The frameworks that deal in
+**CoreFoundationKit** reads what CoreFoundation hands back. The frameworks that deal in
 `CFDictionary` and `CFTypeRef` — property lists, the keychain, IOKit — hand back a small set of
 types and leave the reader to work out which one it got, and a Swift cast cannot: `as? CFString`
 succeeds for any object, and `NSNumber(value: 1) as? Bool` succeeds too. The type ID is the one
@@ -15,7 +15,7 @@ case .string(let value):
 case .boolean(let value):
     print(value)
 case .number(let value):
-    print(CFNumberIsFloatType(value) ? "real" : "integer")
+    print(CoreFoundationValue.Number(exactly: value) as Any)
 case .data, .date, .array, .dictionary:
     break
 case .other(let object):
@@ -23,9 +23,38 @@ case .other(let object):
 }
 ```
 
-What a number becomes, how a collection is walked, and whether an object of some other type is
-an error or something to carry along are left to the reader. Each payload is the CoreFoundation
-type; bridge with `as` to the Foundation or Swift type from there.
+Each payload is the CoreFoundation type; bridge with `as` to the Foundation or Swift type from
+there. Whether an object of some other type is an error or something to carry along is left to
+the reader.
+
+A number and the two collections take more than a cast to read, and are read here too.
+
+`CoreFoundationValue.Number` is the value of a `CFNumber` as the Swift type that holds it
+exactly. A cast gets this wrong in both directions — a floating-point `2.0` passes `as? Int64`,
+and `CFNumberGetValue` reads `UInt64.max` as -1 and calls it a success — and the casts that do
+get it right bridge the number first, which most numbers never need:
+
+```swift
+switch CoreFoundationValue.Number(exactly: number) {
+case .integer(let value)?:          // an Int64
+case .unsignedInteger(let value)?:  // a UInt64 above Int64.max
+case .floatingPoint(let value)?:    // a Double, whole or not
+case nil:                           // held exactly by none of them
+}
+```
+
+`CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements` are the
+contents of a `CFArray` and a `CFDictionary` as collections of objects not yet told apart. No
+Swift array or dictionary is built on the way, a key that is not a string is handed over rather
+than failing the cast for the whole dictionary, and the loop ends where the reader ends it:
+
+```swift
+for (key, value) in CoreFoundationValue.DictionaryElements(dictionary) {
+    guard case .string(let key) = CoreFoundationValue(unchecked: key) else { return nil }
+
+    result[key as String] = read(CoreFoundationValue(unchecked: value))
+}
+```
 
 An object a framework returned is read with `CoreFoundationValue(unchecked:)`. One a caller
 handed over is read with `CoreFoundationValue(_:)`, which returns `nil` for a proxy instead of
