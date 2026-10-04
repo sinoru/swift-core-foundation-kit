@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-10-05
+
 ### Added
 
 - `CoreFoundationValue`, which tells a CoreFoundation object apart by its type ID: a string,
@@ -22,4 +24,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for macOS 12, Mac Catalyst 15, iOS 15, tvOS 15, watchOS 8, and visionOS 1, with
   Swift 6.2 or later. The package is for Apple platforms alone.
 
-[unreleased]: https://github.com/sinoru/swift-core-foundation-kit/commits/main
+[unreleased]: https://github.com/sinoru/swift-core-foundation-kit/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/sinoru/swift-core-foundation-kit/releases/tag/v0.0.1
