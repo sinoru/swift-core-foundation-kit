@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-10-05
+
 ### Added
 
 - `CoreFoundationValue.Number`, the value of a `CFNumber` as the number says it holds it: an
@@ -57,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for macOS 12, Mac Catalyst 15, iOS 15, tvOS 15, watchOS 8, and visionOS 1, with
   Swift 6.2 or later. The package is for Apple platforms alone.
 
-[unreleased]: https://github.com/sinoru/swift-core-foundation-kit/compare/v0.0.2...HEAD
+[unreleased]: https://github.com/sinoru/swift-core-foundation-kit/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/sinoru/swift-core-foundation-kit/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/sinoru/swift-core-foundation-kit/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/sinoru/swift-core-foundation-kit/releases/tag/v0.0.1
