@@ -9,7 +9,7 @@ question that answers it, and this is that question asked once.
 ```swift
 import CoreFoundationKit
 
-switch CoreFoundationValue(object) {
+switch CoreFoundationValue(unchecked: object) {
 case .string(let value):
     print(value as String)
 case .boolean(let value):
@@ -27,8 +27,8 @@ What a number becomes, how a collection is walked, and whether an object of some
 an error or something to carry along are left to the reader. Each payload is the CoreFoundation
 type; bridge with `as` to the Foundation or Swift type from there.
 
-An object a framework returned is read with `CoreFoundationValue(_:)`. One a caller handed over
-is read with `CoreFoundationValue(untrusted:)`, which returns `nil` for a proxy instead of
+An object a framework returned is read with `CoreFoundationValue(unchecked:)`. One a caller
+handed over is read with `CoreFoundationValue(_:)`, which returns `nil` for a proxy instead of
 letting `CFGetTypeID` send it a message it would raise on.
 
 ## Requirements

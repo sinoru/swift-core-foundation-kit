@@ -38,13 +38,17 @@ extension CoreFoundationValue {
 struct CoreFoundationValueTests {
     @Test
     func tellsEachTypeApart() {
-        #expect(CoreFoundationValue(NSString(string: "text")).kind == .string)
-        #expect(CoreFoundationValue(kCFBooleanTrue).kind == .boolean)
-        #expect(CoreFoundationValue(NSNumber(value: 1)).kind == .number)
-        #expect(CoreFoundationValue(NSData(data: Data([1, 2, 3]))).kind == .data)
-        #expect(CoreFoundationValue(NSDate(timeIntervalSinceReferenceDate: 0)).kind == .date)
-        #expect(CoreFoundationValue(NSArray(array: [1, 2])).kind == .array)
-        #expect(CoreFoundationValue(NSDictionary(dictionary: ["key": 1])).kind == .dictionary)
+        #expect(CoreFoundationValue(unchecked: NSString(string: "text")).kind == .string)
+        #expect(CoreFoundationValue(unchecked: kCFBooleanTrue).kind == .boolean)
+        #expect(CoreFoundationValue(unchecked: NSNumber(value: 1)).kind == .number)
+        #expect(CoreFoundationValue(unchecked: NSData(data: Data([1, 2, 3]))).kind == .data)
+        #expect(
+            CoreFoundationValue(unchecked: NSDate(timeIntervalSinceReferenceDate: 0)).kind == .date
+        )
+        #expect(CoreFoundationValue(unchecked: NSArray(array: [1, 2])).kind == .array)
+        #expect(
+            CoreFoundationValue(unchecked: NSDictionary(dictionary: ["key": 1])).kind == .dictionary
+        )
     }
 
     // The payload is the object that was handed in, not a copy of it.
@@ -54,8 +58,8 @@ struct CoreFoundationValueTests {
         let number = NSNumber(value: 1.5)
 
         guard
-            case .string(let stringValue) = CoreFoundationValue(string),
-            case .number(let numberValue) = CoreFoundationValue(number)
+            case .string(let stringValue) = CoreFoundationValue(unchecked: string),
+            case .number(let numberValue) = CoreFoundationValue(unchecked: number)
         else {
             Issue.record("A string and a number were read as something else")
             return
@@ -72,17 +76,17 @@ struct CoreFoundationValueTests {
     @Test
     func tellsABooleanFromANumber() {
         guard
-            case .boolean(true) = CoreFoundationValue(true as NSNumber),
-            case .boolean(false) = CoreFoundationValue(NSNumber(value: false))
+            case .boolean(true) = CoreFoundationValue(unchecked: true as NSNumber),
+            case .boolean(false) = CoreFoundationValue(unchecked: NSNumber(value: false))
         else {
             Issue.record("A boolean was read as something else")
             return
         }
 
-        #expect(CoreFoundationValue(NSNumber(value: 1)).kind == .number)
-        #expect(CoreFoundationValue(NSNumber(value: 0)).kind == .number)
+        #expect(CoreFoundationValue(unchecked: NSNumber(value: 1)).kind == .number)
+        #expect(CoreFoundationValue(unchecked: NSNumber(value: 0)).kind == .number)
         // The same spelling as a boolean in `objCType`, and still a number.
-        #expect(CoreFoundationValue(NSNumber(value: Int8(1))).kind == .number)
+        #expect(CoreFoundationValue(unchecked: NSNumber(value: Int8(1))).kind == .number)
     }
 
     // Swift values a caller built by hand cross into objects of Swift's own classes, not
@@ -91,14 +95,14 @@ struct CoreFoundationValueTests {
     func readsABridgedSwiftValue() {
         let string = String(repeating: "core foundation ", count: 8)
 
-        #expect(CoreFoundationValue(string as AnyObject).kind == .string)
-        #expect(CoreFoundationValue(true as AnyObject).kind == .boolean)
-        #expect(CoreFoundationValue(1 as AnyObject).kind == .number)
-        #expect(CoreFoundationValue(1.5 as AnyObject).kind == .number)
-        #expect(CoreFoundationValue(Data([1, 2, 3]) as AnyObject).kind == .data)
-        #expect(CoreFoundationValue(Date() as AnyObject).kind == .date)
-        #expect(CoreFoundationValue([1, 2] as AnyObject).kind == .array)
-        #expect(CoreFoundationValue(["key": 1] as AnyObject).kind == .dictionary)
+        #expect(CoreFoundationValue(unchecked: string as AnyObject).kind == .string)
+        #expect(CoreFoundationValue(unchecked: true as AnyObject).kind == .boolean)
+        #expect(CoreFoundationValue(unchecked: 1 as AnyObject).kind == .number)
+        #expect(CoreFoundationValue(unchecked: 1.5 as AnyObject).kind == .number)
+        #expect(CoreFoundationValue(unchecked: Data([1, 2, 3]) as AnyObject).kind == .data)
+        #expect(CoreFoundationValue(unchecked: Date() as AnyObject).kind == .date)
+        #expect(CoreFoundationValue(unchecked: [1, 2] as AnyObject).kind == .array)
+        #expect(CoreFoundationValue(unchecked: ["key": 1] as AnyObject).kind == .dictionary)
     }
 
     private final class NotAnNSObject {}
@@ -112,7 +116,7 @@ struct CoreFoundationValueTests {
     }
 
     private func isCarriedThrough(_ object: AnyObject) -> Bool {
-        guard case .other(let value) = CoreFoundationValue(object) else { return false }
+        guard case .other(let value) = CoreFoundationValue(unchecked: object) else { return false }
 
         return value === object
     }
@@ -120,12 +124,12 @@ struct CoreFoundationValueTests {
     // Turning a proxy away must not turn away anything else.
     @Test
     func readsAnObjectOfUnknownOrigin() {
-        #expect(CoreFoundationValue(untrusted: NSString(string: "text"))?.kind == .string)
-        #expect(CoreFoundationValue(untrusted: "text" as AnyObject)?.kind == .string)
-        #expect(CoreFoundationValue(untrusted: true as AnyObject)?.kind == .boolean)
-        #expect(CoreFoundationValue(untrusted: [1, 2] as AnyObject)?.kind == .array)
-        #expect(CoreFoundationValue(untrusted: NSObject())?.kind == .other)
-        #expect(CoreFoundationValue(untrusted: NotAnNSObject())?.kind == .other)
+        #expect(CoreFoundationValue(NSString(string: "text"))?.kind == .string)
+        #expect(CoreFoundationValue("text" as AnyObject)?.kind == .string)
+        #expect(CoreFoundationValue(true as AnyObject)?.kind == .boolean)
+        #expect(CoreFoundationValue([1, 2] as AnyObject)?.kind == .array)
+        #expect(CoreFoundationValue(NSObject())?.kind == .other)
+        #expect(CoreFoundationValue(NotAnNSObject())?.kind == .other)
     }
 
 #if os(macOS)
@@ -141,7 +145,7 @@ struct CoreFoundationValueTests {
     func turnsAProxyAwayWithoutSendingItAMessage() {
         let proxy = NSProtocolChecker(target: NSObject(), protocol: (any NSObjectProtocol).self)
 
-        #expect(CoreFoundationValue(untrusted: proxy) == nil)
+        #expect(CoreFoundationValue(proxy) == nil)
     }
 #endif
 }

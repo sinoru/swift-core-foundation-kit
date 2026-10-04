@@ -21,20 +21,27 @@ public import ObjectiveC
 /// each payload is the CoreFoundation type so that nothing has been decided for it: bridge with
 /// `as` to the Foundation or Swift type from there.
 public enum CoreFoundationValue {
+    /// A `CFString`.
     case string(CFString)
     /// A `CFBoolean`, which is one of two objects, as the value it stands for.
     case boolean(Bool)
+    /// A `CFNumber`, of whichever numeric type it holds.
     case number(CFNumber)
+    /// A `CFData`.
     case data(CFData)
+    /// A `CFDate`.
     case date(CFDate)
+    /// A `CFArray`, its elements not yet told apart.
     case array(CFArray)
+    /// A `CFDictionary`, its keys and values not yet told apart.
     case dictionary(CFDictionary)
     /// An object of any other type, CoreFoundation's or not, carried through untouched.
     case other(CFTypeRef)
 }
 
 extension CoreFoundationValue {
-    /// Tells apart an object that came from CoreFoundation, or from a framework built on it.
+    /// Creates a value from an object that came from CoreFoundation, or from a framework built
+    /// on it.
     ///
     /// One switch settles the type, and each branch then takes the object as that type without
     /// asking again. There is nothing a checked cast would add: the runtime does not compare type
@@ -46,9 +53,9 @@ extension CoreFoundationValue {
     /// most of them the first time they are asked for, and none of the numbers is a promise.
     ///
     /// - Parameter object: An object `CFGetTypeID` can be asked about. That is every object but a
-    ///   proxy — see ``init(untrusted:)`` for one whose origin is not known.
+    ///   proxy — see ``init(_:)`` for one whose origin is not known.
     @inlinable
-    public init(_ object: CFTypeRef) {
+    public init(unchecked object: CFTypeRef) {
         switch CFGetTypeID(object) {
         case CFStringGetTypeID():
             self = .string(unsafe unsafeDowncast(object, to: CFString.self))
@@ -69,7 +76,8 @@ extension CoreFoundationValue {
         }
     }
 
-    /// Tells apart an object of unknown origin, or returns `nil` for one that cannot be asked.
+    /// Creates a value from an object of unknown origin, if the object can be asked for its
+    /// type ID.
     ///
     /// `CFGetTypeID` answers for a CoreFoundation object itself and sends every other one
     /// `_cfTypeID`, which `NSObject` and Swift's own root class implement and `NSProxy` does not:
@@ -79,11 +87,11 @@ extension CoreFoundationValue {
     /// for the class without a message being sent, and the question is the one `CFGetTypeID` is
     /// about to depend on.
     ///
-    /// An object a framework returned needs none of this; ``init(_:)`` reads it directly.
+    /// An object a framework returned needs none of this; ``init(unchecked:)`` reads it directly.
     ///
     /// - Parameter object: Any object at all.
     @inlinable
-    public init?(untrusted object: AnyObject) {
+    public init?(_ object: AnyObject) {
         guard
             class_respondsToSelector(
                 object_getClass(object),
@@ -93,13 +101,15 @@ extension CoreFoundationValue {
             return nil
         }
 
-        self.init(object)
+        self.init(unchecked: object)
     }
 }
 
-/// What `CFGetTypeID` sends an object that is not CoreFoundation's own. No header declares it;
-/// CoreFoundation implements it for `NSObject` in its `__NSCFType` category, and the Swift runtime
-/// for the root class of its own objects.
+/// An object that answers `_cfTypeID`, the message `CFGetTypeID` sends an object that is not
+/// CoreFoundation's own.
+///
+/// No header declares the message; CoreFoundation implements it for `NSObject` in its
+/// `__NSCFType` category, and the Swift runtime for the root class of its own objects.
 ///
 /// Nothing conforms to this. It is declared so that the selector can be named with `#selector`,
 /// which the linker resolves once: a selector built from a string is registered on every call, and
@@ -108,5 +118,6 @@ extension CoreFoundationValue {
 @objc
 @usableFromInline
 protocol _CoreFoundationTypeIdentifiable {
+    /// The CoreFoundation type ID the object answers with.
     @objc var _cfTypeID: CFTypeID { get }
 }

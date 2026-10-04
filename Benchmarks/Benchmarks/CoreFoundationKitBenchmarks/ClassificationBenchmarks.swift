@@ -32,7 +32,7 @@ private func makeObjects() -> [AnyObject] {
 /// What a reader without the type ID writes instead: one conditional cast after another, until one
 /// succeeds. It is here for what it costs, not for what it answers — it takes a number for a
 /// boolean, which is the reason not to write it.
-private func castLadder(_ object: AnyObject) {
+private func tellApartByCastLadder(_ object: AnyObject) {
     switch object {
     case let value as String:
         blackHole(value)
@@ -55,10 +55,14 @@ private func castLadder(_ object: AnyObject) {
     }
 }
 
-private func registerLeaf(_ name: String, _ makeObject: @escaping () -> AnyObject) {
+/// Registers a benchmark that tells apart one object of a single type.
+private func registerSingleTypeBenchmark(
+    named name: String,
+    makeObject: @escaping () -> AnyObject,
+) {
     Benchmark("Tell apart \(name)") { benchmark, object in
         for _ in benchmark.scaledIterations {
-            blackHole(CoreFoundationValue(object))
+            blackHole(CoreFoundationValue(unchecked: object))
         }
     } setup: {
         makeObject()
@@ -85,7 +89,7 @@ func registerClassificationBenchmarks() {
     Benchmark("Tell apart a framework's objects") { benchmark, objects in
         for _ in benchmark.scaledIterations {
             for object in objects {
-                blackHole(CoreFoundationValue(object))
+                blackHole(CoreFoundationValue(unchecked: object))
             }
         }
     } setup: {
@@ -95,7 +99,7 @@ func registerClassificationBenchmarks() {
     Benchmark("Tell apart objects of unknown origin") { benchmark, objects in
         for _ in benchmark.scaledIterations {
             for object in objects {
-                blackHole(CoreFoundationValue(untrusted: object))
+                blackHole(CoreFoundationValue(object))
             }
         }
     } setup: {
@@ -105,19 +109,19 @@ func registerClassificationBenchmarks() {
     Benchmark("Tell apart objects by a cast ladder") { benchmark, objects in
         for _ in benchmark.scaledIterations {
             for object in objects {
-                castLadder(object)
+                tellApartByCastLadder(object)
             }
         }
     } setup: {
         makeObjects()
     }
 
-    registerLeaf("a string") { NSString(string: "com.example.service") }
-    registerLeaf("a boolean") { kCFBooleanTrue }
-    registerLeaf("a number") { NSNumber(value: 2048) }
-    registerLeaf("data") { NSData(data: Data([1, 2, 3])) }
-    registerLeaf("a date") { NSDate(timeIntervalSinceReferenceDate: 0) }
-    registerLeaf("an array") { NSArray(array: [1, 2]) }
-    registerLeaf("a dictionary") { NSDictionary(dictionary: ["key": 1]) }
-    registerLeaf("an object of another type") { NSObject() }
+    registerSingleTypeBenchmark(named: "a string") { NSString(string: "com.example.service") }
+    registerSingleTypeBenchmark(named: "a boolean") { kCFBooleanTrue }
+    registerSingleTypeBenchmark(named: "a number") { NSNumber(value: 2048) }
+    registerSingleTypeBenchmark(named: "data") { NSData(data: Data([1, 2, 3])) }
+    registerSingleTypeBenchmark(named: "a date") { NSDate(timeIntervalSinceReferenceDate: 0) }
+    registerSingleTypeBenchmark(named: "an array") { NSArray(array: [1, 2]) }
+    registerSingleTypeBenchmark(named: "a dictionary") { NSDictionary(dictionary: ["key": 1]) }
+    registerSingleTypeBenchmark(named: "an object of another type") { NSObject() }
 }
