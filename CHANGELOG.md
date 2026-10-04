@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `CoreFoundationValue.Number`, the value of a `CFNumber` as the Swift type that holds it
-  exactly: an `Int64`, a `UInt64` for an integer above `Int64.max`, or a `Double` for a number
-  of a floating-point type, whole or not. `Number(exactly:)` asks the questions in the order
-  that gets this right, and bridges the number only when it read as negative and says it
-  holds neither a signed integer nor an unsigned one. Next to the casts that check exactness,
+- `CoreFoundationValue.Number`, the value of a `CFNumber` as the number says it holds it: an
+  `Int64`, a `UInt64` for an integer above `Int64.max`, or a `Double` for a number of a
+  floating-point type, whole or not. `Number(_:)` asks the questions in the order that gets
+  this right, and bridges the number only when it read as negative and says it holds neither
+  a signed integer nor an unsigned one. A number CoreFoundation owns is read without loss; an
+  `NSDecimalNumber`, which says it is floating-point whatever it holds, is read as the
+  nearest `Double`. Next to the casts that check exactness,
   an integer that is not negative is read in less than half the work, one too large for a
   tagged pointer in an eighth of it, and one above `Int64.max` in under a fifth.
 - `CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements`, the

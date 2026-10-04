@@ -13,7 +13,7 @@ struct CoreFoundationValueNumberTests {
     private typealias Number = CoreFoundationValue.Number
 
     private func number(_ value: NSNumber) -> Number? {
-        Number(exactly: value as CFNumber)
+        Number(value as CFNumber)
     }
 
     @Test
@@ -73,6 +73,24 @@ struct CoreFoundationValueNumberTests {
     func readsADecimalNumberAsFloatingPoint() {
         #expect(number(NSDecimalNumber(string: "3.5")) == .floatingPoint(3.5))
         #expect(number(NSDecimalNumber(string: "3")) == .floatingPoint(3))
+    }
+
+    // A decimal number is the one number read with loss, and the reason the initializer's argument
+    // has no label that says otherwise. It holds more digits than a `Double` keeps and says it is
+    // floating-point all the same, so it is read as the nearest `Double` — which is what
+    // `PropertyListSerialization` writes for it, and so what reading it back would give.
+    @Test
+    func readsADecimalNumberADoubleCannotHoldAsTheNearestDouble() {
+        // One past the 53 bits a `Double` keeps, with a fraction and without.
+        #expect(
+            number(NSDecimalNumber(string: "9007199254740993.25"))
+                == .floatingPoint(9_007_199_254_740_994)
+        )
+        #expect(
+            number(NSDecimalNumber(string: "9007199254740993"))
+                == .floatingPoint(9_007_199_254_740_992)
+        )
+        #expect(number(NSDecimalNumber(string: "0.1")) == .floatingPoint(0.1))
     }
 
     // Swift values a caller built by hand bridge to the same numbers.

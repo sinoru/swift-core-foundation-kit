@@ -15,7 +15,7 @@ case .string(let value):
 case .boolean(let value):
     print(value)
 case .number(let value):
-    print(CoreFoundationValue.Number(exactly: value) as Any)
+    print(CoreFoundationValue.Number(value) as Any)
 case .data, .date, .array, .dictionary:
     break
 case .other(let object):
@@ -29,19 +29,24 @@ the reader.
 
 A number and the two collections take more than a cast to read, and are read here too.
 
-`CoreFoundationValue.Number` is the value of a `CFNumber` as the Swift type that holds it
-exactly. A cast gets this wrong in both directions — a floating-point `2.0` passes `as? Int64`,
-and `CFNumberGetValue` reads `UInt64.max` as -1 and calls it a success — and the casts that do
-get it right bridge the number first, which most numbers never need:
+`CoreFoundationValue.Number` is the value of a `CFNumber` as an integer or a floating-point
+number, whichever the number says it is. A cast gets this wrong in both directions — a
+floating-point `2.0` passes `as? Int64`, and `CFNumberGetValue` reads `UInt64.max` as -1 and
+calls it a success — and the casts that do get it right bridge the number first, which most
+numbers never need:
 
 ```swift
-switch CoreFoundationValue.Number(exactly: number) {
+switch CoreFoundationValue.Number(number) {
 case .integer(let value)?:          // an Int64
 case .unsignedInteger(let value)?:  // a UInt64 above Int64.max
 case .floatingPoint(let value)?:    // a Double, whole or not
-case nil:                           // held exactly by none of them
+case nil:                           // an integer none of them holds
 }
 ```
+
+A number CoreFoundation owns is read without loss. An `NSDecimalNumber` says it is
+floating-point whatever it holds, and is read as the nearest `Double`, as
+`PropertyListSerialization` writes it.
 
 `CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements` are the
 contents of a `CFArray` and a `CFDictionary` as collections of objects not yet told apart. No

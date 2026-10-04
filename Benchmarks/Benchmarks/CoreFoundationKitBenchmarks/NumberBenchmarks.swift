@@ -31,7 +31,7 @@ private func registerNumberBenchmarks(named name: String, makeNumber: @escaping 
     Benchmark("Read \(name)") { benchmark, object in
         for _ in benchmark.scaledIterations {
             if case .number(let number) = CoreFoundationValue(unchecked: object) {
-                blackHole(CoreFoundationValue.Number(exactly: number))
+                blackHole(CoreFoundationValue.Number(number))
             }
         }
     } setup: {
@@ -72,7 +72,7 @@ func registerNumberBenchmarks() {
     // the release after would show here and nowhere above.
     Benchmark("Read a borrowed floating-point number") { benchmark, number in
         for _ in benchmark.scaledIterations {
-            blackHole(CoreFoundationValue.Number(exactly: number))
+            blackHole(CoreFoundationValue.Number(number))
         }
     } setup: {
         NSNumber(value: 1.5) as CFNumber

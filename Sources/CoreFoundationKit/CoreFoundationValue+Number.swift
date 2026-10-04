@@ -7,7 +7,8 @@ public import CoreFoundation
 public import Foundation
 
 extension CoreFoundationValue {
-    /// The value of a `CFNumber`, as the Swift type that holds it exactly.
+    /// The value of a `CFNumber`, as an integer or a floating-point number, whichever the number
+    /// says it is.
     ///
     /// A `CFNumber` does not say what it holds in a way a reader can take at its word. A Swift cast
     /// succeeds whenever the value is exactly representable, so a floating-point `2.0` passes
@@ -28,7 +29,15 @@ extension CoreFoundationValue {
 }
 
 extension CoreFoundationValue.Number {
-    /// Creates a value from a number, if one of the cases holds it exactly.
+    /// Creates a value from a number, if one of the cases holds it.
+    ///
+    /// The number is taken at its word about its type. One CoreFoundation owns holds what it says
+    /// it does, and is read without loss. One it does not own answers through Foundation, and an
+    /// `NSDecimalNumber` answers that it is floating-point whatever it holds. It is read as the
+    /// `Double` nearest its value, which is what `PropertyListSerialization` writes for it and
+    /// what `Double(exactly:)` makes of it: a decimal fraction is rounded, and so is a whole
+    /// number past the 53 bits a `Double` keeps. That is why the argument has no label promising
+    /// otherwise.
     ///
     /// Whether the number is of a floating-point type is asked first, because nothing asked of
     /// the value afterwards can tell a whole `Double` from an integer.
@@ -53,7 +62,7 @@ extension CoreFoundationValue.Number {
     ///
     /// - Parameter number: A number, as ``CoreFoundationValue/number(_:)`` carries it.
     @inlinable
-    public init?(exactly number: borrowing CFNumber) {
+    public init?(_ number: borrowing CFNumber) {
         if CFNumberIsFloatType(copy number) {
             self = .floatingPoint(((copy number) as NSNumber).doubleValue)
             return
@@ -65,7 +74,7 @@ extension CoreFoundationValue.Number {
         if value >= 0 {
             self = .integer(value)
         } else {
-            self.init(exactly: number, readingAsNegative: value)
+            self.init(number, readingAsNegative: value)
         }
     }
 
@@ -82,7 +91,7 @@ extension CoreFoundationValue.Number {
     ///
     /// Out of line, because it is the path few numbers take.
     @usableFromInline
-    init?(exactly number: borrowing CFNumber, readingAsNegative value: Int64) {
+    init?(_ number: borrowing CFNumber, readingAsNegative value: Int64) {
         let number = (copy number) as NSNumber
 
         switch unsafe UInt8(bitPattern: number.objCType.pointee) {
