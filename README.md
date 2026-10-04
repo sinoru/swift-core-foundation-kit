@@ -47,6 +47,24 @@ under a platform condition:
 )
 ```
 
+## Running the benchmarks
+
+The measurements are a package of their own, under `Benchmarks`, so that the harness they run on
+— [Benchmark](https://github.com/ordo-one/benchmark) — is never among what a package depending
+on this one resolves.
+
+```sh
+cd Benchmarks
+swift package benchmark
+```
+
+To compare a change against what came before it, record a baseline first:
+
+```sh
+swift package --allow-writing-to-package-directory benchmark baseline update before
+swift package benchmark baseline compare before
+```
+
 ## License
 
 See [LICENSE](LICENSE).

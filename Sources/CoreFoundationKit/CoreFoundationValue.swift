@@ -39,7 +39,7 @@ extension CoreFoundationValue {
     /// One switch settles the type, and each branch then takes the object as that type without
     /// asking again. There is nothing a checked cast would add: the runtime does not compare type
     /// IDs for a cast to a CoreFoundation type, so `as!` succeeds for any object — but it still
-    /// calls into the runtime to find that out, which measured as about one percent of reading a
+    /// calls into the runtime to find that out, which measured as about two percent of reading a
     /// property list. The type ID just asked for is the check.
     ///
     /// The type IDs are asked for by function rather than written down. CoreFoundation registers
