@@ -4,7 +4,7 @@
 //
 
 public import CoreFoundation
-public import Foundation
+internal import Foundation
 
 extension CoreFoundationValue {
     /// The value of a `CFNumber`, as an integer or a floating-point number, whichever the number
@@ -56,26 +56,14 @@ extension CoreFoundationValue.Number {
     /// The number is borrowed. An initializer owns its arguments unless it says otherwise, so a
     /// caller that only has the number on loan would retain it to hand it over and this would
     /// release it on the way out, which for a number too large for a tagged pointer measured as
-    /// more than a third of reading it. Each `copy` below is the price of saying so: a borrowed
-    /// value is not copied without being asked, and handing it to a CoreFoundation function
-    /// counts. None of them survives optimization.
+    /// more than a third of reading it.
     ///
     /// - Parameter number: A number, as ``CoreFoundationValue/number(_:)`` carries it.
     @inlinable
-    public init?(_ number: borrowing CFNumber) {
-        if CFNumberIsFloatType(copy number) {
-            self = .floatingPoint(((copy number) as NSNumber).doubleValue)
-            return
-        }
+    public init?(_ number: borrowing CoreFoundationValue.NumberView) {
+        guard let value = number.number() else { return nil }
 
-        var value: Int64 = 0
-        _ = unsafe CFNumberGetValue(copy number, .sInt64Type, &value)
-
-        if value >= 0 {
-            self = .integer(value)
-        } else {
-            self.init(number, readingAsNegative: value)
-        }
+        self = value
     }
 
     /// Creates a value from an integer that read as a negative `Int64`.

@@ -14,26 +14,32 @@ case .string(let value):
     print(value as String)
 case .boolean(let value):
     print(value)
-case .number(let value):
-    print(CoreFoundationValue.Number(value) as Any)
-case .data, .date, .array, .dictionary:
+case .number(let number):
+    print(CoreFoundationValue.Number(number) as Any)
+case .data, .date:
     break
+case .array(let elements):
+    for element in elements { print(element) }
+case .dictionary(let elements):
+    for (key, value) in elements { print(key, value) }
 case .other(let object):
     print("not one of these:", object)
 }
 ```
 
-Each payload is the CoreFoundation type; bridge with `as` to the Foundation or Swift type from
-there. Whether an object of some other type is an error or something to carry along is left to
-the reader.
+A string, data and a date are carried as the CoreFoundation type; bridge with `as` to the
+Foundation or Swift type from there. Whether an object of some other type is an error or
+something to carry along is left to the reader.
 
-A number and the two collections take more than a cast to read, and are read here too.
+A number and the two collections take more than a cast to read, and are carried as views that
+read them. A view costs nothing until it is asked, and hands back the object it was made from
+as `base`.
 
-`CoreFoundationValue.Number` is the value of a `CFNumber` as an integer or a floating-point
-number, whichever the number says it is. A cast gets this wrong in both directions — a
-floating-point `2.0` passes `as? Int64`, and `CFNumberGetValue` reads `UInt64.max` as -1 and
-calls it a success — and the casts that do get it right bridge the number first, which most
-numbers never need:
+`CoreFoundationValue.Number` is the value of a number as an integer or a floating-point number,
+whichever the number says it is. A cast gets this wrong in both directions — a floating-point
+`2.0` passes `as? Int64`, and `CFNumberGetValue` reads `UInt64.max` as -1 and calls it a
+success — and the casts that do get it right bridge the number first, which most numbers never
+need:
 
 ```swift
 switch CoreFoundationValue.Number(number) {
@@ -48,22 +54,28 @@ A number CoreFoundation owns is read without loss. An `NSDecimalNumber` says it 
 floating-point whatever it holds, and is read as the nearest `Double`, as
 `PropertyListSerialization` writes it.
 
-`CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements` are the
-contents of a `CFArray` and a `CFDictionary` as collections of objects not yet told apart. No
+An array and a dictionary are sequences of their elements, each told apart as it is reached. No
 Swift array or dictionary is built on the way, a key that is not a string is handed over rather
 than failing the cast for the whole dictionary, and the loop ends where the reader ends it:
 
 ```swift
-for (key, value) in CoreFoundationValue.DictionaryElements(dictionary) {
-    guard case .string(let key) = CoreFoundationValue(unchecked: key) else { return nil }
+case .dictionary(let elements):
+    var result = [String: Value](minimumCapacity: elements.count)
 
-    result[key as String] = read(CoreFoundationValue(unchecked: value))
-}
+    for (key, value) in elements {
+        guard case .string(let key) = key, let value = Value(value) else { return nil }
+
+        result[key as String] = value
+    }
 ```
+
+A collection must not be mutated while it is being walked, which is what CoreFoundation asks of
+anything that walks one of its collections.
 
 An object a framework returned is read with `CoreFoundationValue(unchecked:)`. One a caller
 handed over is read with `CoreFoundationValue(_:)`, which returns `nil` for a proxy instead of
-letting `CFGetTypeID` send it a message it would raise on.
+letting `CFGetTypeID` send it a message it would raise on. A collection reads its elements the
+way it was read itself, and a proxy among them is carried as `.other`.
 
 A type that is not among the cases is told apart by its type ID, and
 `CoreFoundationValue.typeID(of:)` answers with it under the same guard:

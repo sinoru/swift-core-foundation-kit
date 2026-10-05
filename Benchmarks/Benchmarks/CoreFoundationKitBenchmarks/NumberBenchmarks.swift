@@ -23,6 +23,15 @@ private func readByCasts(_ number: CFNumber) -> CoreFoundationValue.Number? {
     }
 }
 
+/// The view of a number, as telling it apart hands it over.
+private func makeNumberView(_ number: NSNumber) -> CoreFoundationValue.NumberView {
+    guard case .number(let view) = CoreFoundationValue(unchecked: number) else {
+        fatalError("A number was read as something else")
+    }
+
+    return view
+}
+
 /// Registers the pair of benchmarks that read one number, by the initializer and by the casts.
 ///
 /// Each tells the object apart first and reads the number it is handed, which is how a reader
@@ -41,7 +50,7 @@ private func registerNumberBenchmarks(named name: String, makeNumber: @escaping 
     Benchmark("Read \(name) by casts") { benchmark, object in
         for _ in benchmark.scaledIterations {
             if case .number(let number) = CoreFoundationValue(unchecked: object) {
-                blackHole(readByCasts(number))
+                blackHole(readByCasts(number.base))
             }
         }
     } setup: {
@@ -66,23 +75,23 @@ func registerNumberBenchmarks() {
     }
     registerNumberBenchmarks(named: "a floating-point number") { NSNumber(value: 1.5) }
 
-    // A number the caller has only on loan, read without being told apart first. The initializer
-    // borrows its argument so that this costs what the casts cost; were it to own the argument,
-    // as an initializer does unless it says otherwise, the retain to hand the number over and
-    // the release after would show here and nowhere above.
+    // A view the caller has only on loan, read without being told apart here. The value is asked
+    // for through a method, which borrows what it is called on, so that this costs what the casts
+    // cost; an initializer that owned the number would retain it to be handed over and release
+    // it after, and that would show here and nowhere above.
     Benchmark("Read a borrowed floating-point number") { benchmark, number in
         for _ in benchmark.scaledIterations {
             blackHole(CoreFoundationValue.Number(number))
         }
     } setup: {
-        NSNumber(value: 1.5) as CFNumber
+        makeNumberView(NSNumber(value: 1.5))
     }
 
     Benchmark("Read a borrowed floating-point number by casts") { benchmark, number in
         for _ in benchmark.scaledIterations {
-            blackHole(readByCasts(number))
+            blackHole(readByCasts(number.base))
         }
     } setup: {
-        NSNumber(value: 1.5) as CFNumber
+        makeNumberView(NSNumber(value: 1.5))
     }
 }

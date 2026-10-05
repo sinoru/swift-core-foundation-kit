@@ -67,8 +67,8 @@ struct CoreFoundationValueTests {
 
         #expect(stringValue === string)
         #expect(stringValue as String == "text")
-        #expect(numberValue === number)
-        #expect(CFNumberIsFloatType(numberValue))
+        #expect(numberValue.base === number)
+        #expect(CFNumberIsFloatType(numberValue.base))
     }
 
     // The reason to ask for a type ID at all: every one of these is an `NSNumber`, and a Swift

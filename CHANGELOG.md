@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `CoreFoundationValue.number`, `.array` and `.dictionary` now carry views —
+  `CoreFoundationValue.NumberView`, `ArrayView` and `DictionaryView` — in place of the
+  `CFNumber`, `CFArray` and `CFDictionary` themselves. A view costs nothing until it is asked,
+  and hands back the object it was made from as `base`.
+- An array and a dictionary are sequences whose elements are already told apart, the way the
+  collection itself was: one read by `CoreFoundationValue(_:)` has its elements read under the
+  same guard, and a proxy among them is carried as `.other`. A reader no longer wraps the
+  collection and tells each element apart itself.
+- `CoreFoundationValue.Number(_:)` takes the `NumberView` a number is told apart as, rather
+  than a `CFNumber`.
+
+### Removed
+
+- `CoreFoundationValue.ArrayElements` and `CoreFoundationValue.DictionaryElements`, which
+  `ArrayView` and `DictionaryView` replace. They were collections of objects not yet told
+  apart, made from a `CFArray` or `CFDictionary` by hand; the views are sequences, and are
+  come by only through telling an object apart.
+
 ## [0.0.3] - 2026-10-05
 
 ### Added

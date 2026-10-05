@@ -12,8 +12,14 @@ import Testing
 struct CoreFoundationValueNumberTests {
     private typealias Number = CoreFoundationValue.Number
 
+    /// Reads a number the way a reader comes by one: told apart first, then asked for its value.
     private func number(_ value: NSNumber) -> Number? {
-        Number(value as CFNumber)
+        guard case .number(let number) = CoreFoundationValue(unchecked: value) else {
+            Issue.record("A number was read as something else")
+            return nil
+        }
+
+        return Number(number)
     }
 
     @Test
