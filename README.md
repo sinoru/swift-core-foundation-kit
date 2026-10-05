@@ -33,7 +33,7 @@ Add the package to your `Package.swift`, and `CoreFoundationKit` to the target t
 dependencies: [
     .package(
         url: "https://github.com/sinoru/swift-core-foundation-kit.git",
-        from: "0.1.0"
+        from: "1.0.0"
     ),
 ]
 ```
