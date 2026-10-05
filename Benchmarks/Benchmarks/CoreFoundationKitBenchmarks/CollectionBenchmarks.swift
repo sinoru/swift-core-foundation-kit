@@ -10,8 +10,9 @@ import Foundation
 
 /// How many elements the collections hold. Sixteen is about what one level of a property list or
 /// a keychain item's attributes has; the small ones are where what a collection costs to create
-/// is not yet spread over many elements, and none at all is that cost alone.
-private let elementCounts = [0, 1, 4, 16]
+/// is not yet spread over many elements, and none at all is that cost alone. Sixty-four is a
+/// collection too large for anything a walk keeps room for in itself.
+private let elementCounts = [0, 1, 4, 16, 64]
 
 /// An array CoreFoundation owns, as a framework hands one back.
 private func makeArray(count: Int) -> CFArray {

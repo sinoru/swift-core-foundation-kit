@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Walking an array or a dictionary no longer retains each element to hand it over and again
+  for the payload: the collection keeps its elements alive, and they are lent to be told
+  apart. For collections CoreFoundation owns, an array of 16 is walked in a fifth less work
+  and one of 64 in over a third less.
+- Walking a dictionary of eight pairs or fewer no longer allocates: an iterator keeps the keys
+  and values of a small dictionary in itself, and reads only a larger one out to the heap. For
+  dictionaries CoreFoundation owns, one of 1 pair is walked in a third of the work it took and
+  one of 4 in under half; none is walked in more.
+
 ## [0.1.0] - 2026-10-05
 
 ### Changed

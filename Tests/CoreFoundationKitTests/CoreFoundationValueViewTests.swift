@@ -197,6 +197,62 @@ struct CoreFoundationValueViewTests {
         #expect(visited == 2)
     }
 
+    // An iterator keeps the keys and values of a small dictionary in itself and reads a larger
+    // one out to the heap, so each key has to come with its own value on either side of where
+    // one gives way to the other, and well past it.
+    @Test(arguments: [7, 8, 9, 64])
+    func pairsEachKeyWithItsValue(count: Int) throws {
+        let objects = NSMutableDictionary()
+
+        for index in 0..<count {
+            objects[NSString(string: "key \(index)")] = NSNumber(value: index)
+        }
+
+        let view = try #require(dictionaryView(NSDictionary(dictionary: objects)))
+
+        #expect(view.count == count)
+        #expect(try integersByKey(in: view) == expectedIntegersByKey(count: count))
+    }
+
+    @Test(arguments: [7, 8, 9, 64])
+    func pairsEachKeyWithItsValueInABridgedSwiftDictionary(count: Int) throws {
+        var dictionary = [String: Any]()
+
+        for index in 0..<count {
+            dictionary["key \(index)"] = index
+        }
+
+        let view = try #require(dictionaryView(dictionary as AnyObject))
+
+        #expect(view.count == count)
+        #expect(try integersByKey(in: view) == expectedIntegersByKey(count: count))
+    }
+
+    private func expectedIntegersByKey(count: Int) -> [String: Int64] {
+        Dictionary(uniqueKeysWithValues: (0..<count).map { ("key \($0)", Int64($0)) })
+    }
+
+    private func integersByKey(
+        in view: CoreFoundationValue.DictionaryView
+    ) throws -> [String: Int64] {
+        var read = [String: Int64]()
+
+        for element in view {
+            guard
+                case .string(let key) = element.key,
+                case .number(let number) = element.value,
+                case .integer(let value)? = CoreFoundationValue.Number(number)
+            else {
+                Issue.record("A key or a value was read as something else")
+                continue
+            }
+
+            read[key as String] = value
+        }
+
+        return read
+    }
+
     // MARK: - Objects of unknown origin
 
     // A collection read as one of unknown origin reads its elements the same way, however deep.

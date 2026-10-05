@@ -76,11 +76,17 @@ extension CoreFoundationValue.ArrayView: Sequence {
 
             let element = unsafe Unmanaged<AnyObject>
                 .fromOpaque(CFArrayGetValueAtIndex(base, position))
-                .takeUnretainedValue()
 
             position += 1
 
-            return CoreFoundationValue(element: element, checked: checksElements)
+            // The element is lent, not claimed: the array keeps it alive for as long as it is
+            // not mutated, which a walk already asks. Claiming it retained it once to be handed
+            // over and once more for the payload, which for an array of 16 measured as a fifth
+            // of walking it. `_withUnsafeGuaranteedRef` is not a public API, and is the one
+            // thing here to replace should the standard library take it away.
+            return unsafe element._withUnsafeGuaranteedRef {
+                CoreFoundationValue(element: $0, checked: checksElements)
+            }
         }
     }
 
