@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A documentation catalog, so that the API documentation has a landing page: an overview of
+  the package, and its types grouped by what they are for.
+
 ### Changed
 
 - Walking an array or a dictionary no longer retains each element to hand it over and again

@@ -1,4 +1,11 @@
 // swift-tools-version: 6.2
+//
+//  Package.swift
+//  CoreFoundationKitBenchmarks
+//
+//  Copyright (c) 2026 Kang Jaehong
+//  SPDX-License-Identifier: Apache-2.0
+//
 
 import PackageDescription
 
