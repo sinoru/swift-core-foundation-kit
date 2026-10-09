@@ -30,125 +30,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: ${{ matrix.platform.name }} · ${{ matrix.xcode.name }}
-    runs-on: ${{ matrix.xcode.runner }}
-    timeout-minutes: 30
-    env:
-      DEVELOPER_DIR: ${{ matrix.xcode.developer_dir }}
-    strategy:
-      fail-fast: false
-      # Two axes, crossed. The Xcode axis is the newest patch of each Swift minor the package
-      # supports, and it moves the platform SDKs along with the compiler. An entry names its
-      # runner too, because no one image carries every Xcode: Xcode 27 is only on `xcode-27`, a
-      # preview of the macOS 27 image, and nothing older is on it. Swift 6.2 ends with Xcode 26.3;
-      # Swift 6.3 starts with Xcode 26.4.
-      #
-      # Device and simulator are separate SDKs and target triples, so they fail independently. A
-      # device row has nothing to run its tests on, so it stops after the build. A row that can
-      # run tests names its destination directly (macOS, Mac Catalyst) or by simulator runtime,
-      # resolved below against whatever device the image carries so a renamed device does not rot
-      # the matrix.
-      #
-      # macOS is the only row that runs the proxy test: the proxy it needs is in no other
-      # platform's Foundation. What that test covers is one line the other rows compile unchanged.
-      matrix:
-        xcode: &xcode
-          - name: "Swift 6.2.4"
-            runner: macos-26
-            developer_dir: /Applications/Xcode_26.3.app/Contents/Developer
-            without_jemalloc: true
-          - name: "Swift 6.3.3"
-            runner: macos-26
-            developer_dir: /Applications/Xcode_26.6.app/Contents/Developer
-          - name: "Swift 6.4"
-            runner: xcode-27
-            developer_dir: /Applications/Xcode_27.0.app/Contents/Developer
-        platform:
-          - name: "macOS"
-            destination: "generic/platform=macOS,variant=macos"
-            test_destination: "platform=macOS,arch=arm64,variant=macos"
-          - name: "Mac Catalyst"
-            destination: "generic/platform=macOS,variant=Mac Catalyst"
-            test_destination: "platform=macOS,arch=arm64,variant=Mac Catalyst"
-          - name: "iOS"
-            destination: "generic/platform=iOS"
-          - name: "iOS Simulator"
-            destination: "generic/platform=iOS Simulator"
-            simulator_runtime: iOS
-            simulator_sdk: iphonesimulator
-          - name: "tvOS"
-            destination: "generic/platform=tvOS"
-          - name: "tvOS Simulator"
-            destination: "generic/platform=tvOS Simulator"
-            simulator_runtime: tvOS
-            simulator_sdk: appletvsimulator
-          - name: "watchOS"
-            destination: "generic/platform=watchOS"
-          - name: "watchOS Simulator"
-            destination: "generic/platform=watchOS Simulator"
-            simulator_runtime: watchOS
-            simulator_sdk: watchsimulator
-          - name: "visionOS"
-            destination: "generic/platform=visionOS"
-          # visionOS answers to xrOS in CoreSimulator's runtime identifiers.
-          - name: "visionOS Simulator"
-            destination: "generic/platform=visionOS Simulator"
-            simulator_runtime: xrOS
-            simulator_sdk: xrsimulator
-    steps:
-      - uses: actions/checkout@v7
-      - run: xcodebuild -version
+  # Both configurations, and the tests in both. Nothing here uses `@testable import`, so Release
+  # builds them as well as Debug does, and Release is the one that matters: it is the library as
+  # a client gets it, and the payloads are taken with a cast that is only checked in Debug.
+  #
+  # macOS is the only row that runs the proxy test: the proxy it needs is in no other platform's
+  # Foundation. What that test covers is one line the other rows compile unchanged.
+  apple-platforms:
+    uses: sinoru/github-workflows/.github/workflows/apple-platforms.yml@main
+    with:
+      scheme: CoreFoundationKit
+      swift: '["6.2", "6.3", "6.4"]'
+      targets: |
+        [
+          "arm64-apple-macosx",
+          "arm64-apple-ios-macabi",
+          "arm64-apple-ios",
+          "arm64-apple-ios-simulator",
+          "arm64-apple-tvos",
+          "arm64-apple-tvos-simulator",
+          "arm64_32-apple-watchos",
+          "arm64-apple-watchos-simulator",
+          "arm64-apple-xros",
+          "arm64-apple-xros-simulator"
+        ]
 
-      # Both configurations, and the tests in both. Nothing here uses `@testable import`, so
-      # Release builds them as well as Debug does, and Release is the one that matters: it is the
-      # library as a client gets it, and the payloads are taken with a cast that is only checked
-      # in Debug.
-      - name: xcodebuild build-for-testing
-        run: |
-          for configuration in Debug Release; do
-            echo "::group::$configuration"
-            xcodebuild build-for-testing \
-              -scheme CoreFoundationKit \
-              -destination '${{ matrix.platform.destination }}' \
-              -configuration "$configuration" \
-              -derivedDataPath "$RUNNER_TEMP/DerivedData"
-            echo "::endgroup::"
-          done
-
-      # macOS and Mac Catalyst name themselves; a simulator row states its runtime and this picks
-      # a device out of the image's copy of it. An image carries one runtime per Xcode it has, so
-      # the lookup is held to the version of this Xcode's own simulator SDK (26.2 -> iOS-26-2)
-      # rather than taking whichever runtime the list happens to start with. A device row leaves
-      # the variable empty and the test step drops out.
-      - name: Resolve the test destination
-        run: |
-          if [ -n "${{ matrix.platform.simulator_runtime }}" ]; then
-            version=$(xcrun --sdk "${{ matrix.platform.simulator_sdk }}" --show-sdk-version | tr . -)
-            udid=$(xcrun simctl list devices available --json | jq -er \
-              --arg prefix "com.apple.CoreSimulator.SimRuntime.${{ matrix.platform.simulator_runtime }}-$version" \
-              '[.devices | to_entries[] | select(.key | startswith($prefix)) | .value[]][0].udid')
-            echo "TEST_DESTINATION=id=$udid" >> "$GITHUB_ENV"
-          else
-            echo "TEST_DESTINATION=${{ matrix.platform.test_destination }}" >> "$GITHUB_ENV"
-          fi
-
-      # Both configurations run even when the first fails, so that one run says which of them
-      # is broken.
-      - name: xcodebuild test-without-building
-        if: env.TEST_DESTINATION
-        run: |
-          status=0
-          for configuration in Debug Release; do
-            echo "::group::$configuration"
-            xcodebuild test-without-building \
-              -scheme CoreFoundationKit \
-              -destination "$TEST_DESTINATION" \
-              -configuration "$configuration" \
-              -derivedDataPath "$RUNNER_TEMP/DerivedData" || status=1
-            echo "::endgroup::"
-          done
-          exit $status
+  benchmarks-matrix:
+    uses: sinoru/github-workflows/.github/workflows/matrix.yml@main
+    with:
+      swift: '["6.2", "6.3", "6.4"]'
+      targets: '["arm64-apple-macosx"]'
 
   # `Benchmarks` is a package of its own, which nothing above opens, so this is the only place a
   # change to the library that breaks it is found before someone wants a measurement. That and a
@@ -157,15 +68,15 @@ jobs:
   # runner is a different machine every time: the numbers go on the run's summary page to be
   # read, not judged.
   benchmarks:
-    name: Benchmarks · ${{ matrix.xcode.name }}
-    runs-on: ${{ matrix.xcode.runner }}
+    needs: benchmarks-matrix
+    name: Benchmarks · Swift ${{ matrix.swift }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: ${{ matrix.xcode.developer_dir }}
+      DEVELOPER_DIR: ${{ matrix.developer_dir }}
     strategy:
       fail-fast: false
-      matrix:
-        xcode: *xcode
+      matrix: ${{ fromJSON(needs.benchmarks-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
       - run: swift --version
@@ -178,13 +89,13 @@ jobs:
       # Up to Swift 6.2 the harness counts allocations through jemalloc, which it expects to find
       # installed and a runner does not have. It is told to do without rather than given one:
       # what this job is for is finding out that the benchmarks still build and run, and the
-      # other two rows count allocations by a means of the harness's own. The variable is set
-      # here and not in `env`, because the harness asks whether it is set, not what it is set to.
+      # other rows count allocations by a means of the harness's own. The variable is set here
+      # and not in `env`, because the harness asks whether it is set, not what it is set to.
       - name: Run benchmarks
         working-directory: Benchmarks
         run: |
           set -o pipefail
-          if [ "${{ matrix.xcode.without_jemalloc }}" = "true" ]; then
+          if [ "${{ matrix.swift }}" = "6.2" ]; then
             export BENCHMARK_DISABLE_JEMALLOC=1
           fi
           swift package benchmark --format markdown --no-progress --grouping metric | tee "$RUNNER_TEMP/benchmarks.md"
