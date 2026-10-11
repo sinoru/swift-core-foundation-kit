@@ -41,6 +41,7 @@ jobs:
     with:
       scheme: CoreFoundationKit
       swift: '["6.2", "6.3", "6.4"]'
+      configurations: '["Debug", "Release"]'
       targets: |
         [
           "arm64-apple-macosx",
